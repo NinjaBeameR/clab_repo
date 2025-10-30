@@ -50,7 +50,7 @@ function App() {
                 <Monitor className="text-white" size={24} />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Computer Lab Manager</h1>
+                <h1 className="text-xl font-bold text-gray-900">Hongirana School Of Excellence</h1> //ignore this line
                 <p className="text-xs text-gray-500 hidden sm:block">Admin Dashboard</p>
               </div>
             </div>
