@@ -1,48 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Monitor, LogOut, List, Edit } from 'lucide-react';
-import { supabase } from './lib/supabase';
-import Login from './components/Login';
+import { useState } from 'react';
+import { Monitor, List, Edit } from 'lucide-react';
 import ListTab from './components/ListTab';
 import ModifyTab from './components/ModifyTab';
 
 type Tab = 'list' | 'modify';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('list');
-
-  useEffect(() => {
-    // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-lg text-gray-600">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -84,16 +48,6 @@ function App() {
               >
                 <Edit size={18} />
                 <span className="hidden sm:inline">Modify</span>
-              </button>
-
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors ml-2"
-                title="Logout"
-              >
-                <LogOut size={18} />
-                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           </div>
