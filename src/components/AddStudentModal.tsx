@@ -11,6 +11,7 @@ interface AddStudentModalProps {
 export default function AddStudentModal({ computerId, onClose, onSuccess }: AddStudentModalProps) {
   const [name, setName] = useState('');
   const [studentId, setStudentId] = useState('');
+  const [classValue, setClassValue] = useState('');
   const [section, setSection] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -28,6 +29,11 @@ export default function AddStudentModal({ computerId, onClose, onSuccess }: AddS
       return;
     }
 
+    if (!classValue) {
+      setError('Please select a class');
+      return;
+    }
+
     if (!section) {
       setError('Please select a section');
       return;
@@ -39,6 +45,7 @@ export default function AddStudentModal({ computerId, onClose, onSuccess }: AddS
       const student = await studentService.create(
         name.trim(),
         studentId.trim(),
+        classValue,
         section || undefined
       );
       if (computerId) {
@@ -100,6 +107,26 @@ export default function AddStudentModal({ computerId, onClose, onSuccess }: AddS
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={submitting}
             />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="class" className="block text-sm font-medium text-gray-700 mb-2">
+              Class *
+            </label>
+            <select
+              id="class"
+              value={classValue}
+              onChange={(e) => setClassValue(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={submitting}
+            >
+              <option value="">Select a class...</option>
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((cls) => (
+                <option key={cls} value={cls}>
+                  Class {cls}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="mb-6">

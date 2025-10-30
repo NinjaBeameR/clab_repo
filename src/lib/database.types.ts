@@ -37,6 +37,7 @@ export interface Database {
           id: string
           name: string
           student_id: string
+          class: string
           section: string | null
           created_at: string
           updated_at: string
@@ -45,6 +46,7 @@ export interface Database {
           id?: string
           name: string
           student_id: string
+          class: string
           section?: string | null
           created_at?: string
           updated_at?: string
@@ -53,6 +55,7 @@ export interface Database {
           id?: string
           name?: string
           student_id?: string
+          class?: string
           section?: string | null
           created_at?: string
           updated_at?: string

@@ -12,6 +12,7 @@ interface AllocateStudentModalProps {
 export default function AllocateStudentModal({ computerId, onClose, onSuccess }: AllocateStudentModalProps) {
   const [students, setStudents] = useState<StudentWithComputer[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [classValue, setClassValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -32,6 +33,17 @@ export default function AllocateStudentModal({ computerId, onClose, onSuccess }:
     }
   };
 
+  useEffect(() => {
+    if (selectedStudentId) {
+      const student = students.find(s => s.id === selectedStudentId);
+      if (student) {
+        setClassValue(student.class);
+      }
+    } else {
+      setClassValue('');
+    }
+  }, [selectedStudentId, students]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -40,9 +52,21 @@ export default function AllocateStudentModal({ computerId, onClose, onSuccess }:
       return;
     }
 
+    if (!classValue) {
+      setError('Please select a class');
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError(null);
+      
+      // Update student's class if it has changed
+      const student = students.find(s => s.id === selectedStudentId);
+      if (student && student.class !== classValue) {
+        await studentService.update(student.id, student.name, student.student_id, classValue, student.section || undefined);
+      }
+      
       await allocationService.create(selectedStudentId, computerId);
       onSuccess();
     } catch (err: any) {
@@ -83,7 +107,7 @@ export default function AllocateStudentModal({ computerId, onClose, onSuccess }:
             </div>
           ) : (
             <>
-              <div className="mb-6">
+              <div className="mb-4">
                 <label htmlFor="student" className="block text-sm font-medium text-gray-700 mb-2">
                   Select Student *
                 </label>
@@ -97,8 +121,28 @@ export default function AllocateStudentModal({ computerId, onClose, onSuccess }:
                   <option value="">Choose a student...</option>
                   {availableStudents.map((student) => (
                     <option key={student.id} value={student.id}>
-                      {student.name} ({student.student_id})
+                      {student.name} ({student.student_id}) - Class {student.class}
                       {student.computer_name && ` - Currently at ${student.computer_name}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-6">
+                <label htmlFor="class" className="block text-sm font-medium text-gray-700 mb-2">
+                  Class *
+                </label>
+                <select
+                  id="class"
+                  value={classValue}
+                  onChange={(e) => setClassValue(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={submitting || !selectedStudentId}
+                >
+                  <option value="">Select a class...</option>
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((cls) => (
+                    <option key={cls} value={cls}>
+                      Class {cls}
                     </option>
                   ))}
                 </select>

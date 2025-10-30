@@ -8,6 +8,7 @@ type Section = 'A' | 'B' | 'C';
 interface StudentForm {
   name: string;
   studentId: string;
+  class: string;
   section: Section | '';
 }
 
@@ -25,13 +26,14 @@ export default function ModifyTab() {
 
   // Student allocation form (2 students)
   const [selectedComputerId, setSelectedComputerId] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
   const [selectedSection, setSelectedSection] = useState<Section | ''>('');
   const [student1, setStudent1] = useState({ name: '', studentId: '' });
   const [student2, setStudent2] = useState({ name: '', studentId: '' });
 
   // Edit student
   const [editingStudent, setEditingStudent] = useState<StudentWithComputer | null>(null);
-  const [editForm, setEditForm] = useState<StudentForm>({ name: '', studentId: '', section: '' });
+  const [editForm, setEditForm] = useState<StudentForm>({ name: '', studentId: '', class: '', section: '' });
 
   useEffect(() => {
     loadData();
@@ -133,6 +135,11 @@ export default function ModifyTab() {
       return;
     }
 
+    if (!selectedClass) {
+      setError('Please select a class');
+      return;
+    }
+
     if (!selectedSection) {
       setError('Please select a section');
       return;
@@ -154,6 +161,7 @@ export default function ModifyTab() {
         const newStudent1 = await studentService.create(
           student1.name.trim(),
           student1.studentId.trim(),
+          selectedClass,
           selectedSection
         );
         await allocationService.create(newStudent1.id, selectedComputerId);
@@ -164,6 +172,7 @@ export default function ModifyTab() {
         const newStudent2 = await studentService.create(
           student2.name.trim(),
           student2.studentId.trim(),
+          selectedClass,
           selectedSection
         );
         await allocationService.create(newStudent2.id, selectedComputerId);
@@ -173,6 +182,7 @@ export default function ModifyTab() {
       setStudent1({ name: '', studentId: '' });
       setStudent2({ name: '', studentId: '' });
       setSelectedComputerId('');
+      setSelectedClass('');
       setSelectedSection('');
       await loadData();
     } catch (err: any) {
@@ -188,7 +198,8 @@ export default function ModifyTab() {
     setEditForm({
       name: student.name,
       studentId: student.student_id,
-      section: student.section || ''
+      class: student.class,
+      section: (student.section || '') as Section | ''
     });
     clearMessages();
   };
@@ -197,7 +208,7 @@ export default function ModifyTab() {
     if (!editingStudent) return;
     clearMessages();
 
-    if (!editForm.name || !editForm.studentId || !editForm.section) {
+    if (!editForm.name || !editForm.studentId || !editForm.class || !editForm.section) {
       setError('All fields are required');
       return;
     }
@@ -208,6 +219,7 @@ export default function ModifyTab() {
         editingStudent.id,
         editForm.name.trim(),
         editForm.studentId.trim(),
+        editForm.class,
         editForm.section
       );
       setSuccess('Student updated successfully!');
@@ -374,8 +386,8 @@ export default function ModifyTab() {
         </div>
 
         <form onSubmit={handleAllocateStudents} className="space-y-6">
-          {/* Computer and Section Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Computer, Class, and Section Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select Computer *
@@ -390,6 +402,25 @@ export default function ModifyTab() {
                 {computers.map((computer) => (
                   <option key={computer.id} value={computer.id}>
                     {computer.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Class (for both students) *
+              </label>
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={loading}
+              >
+                <option value="">Choose class...</option>
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((cls) => (
+                  <option key={cls} value={cls}>
+                    Class {cls}
                   </option>
                 ))}
               </select>
@@ -510,6 +541,7 @@ export default function ModifyTab() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roll Number</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Computer</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -535,6 +567,20 @@ export default function ModifyTab() {
                             onChange={(e) => setEditForm({ ...editForm, studentId: e.target.value })}
                             className="w-full px-2 py-1 border border-gray-300 rounded"
                           />
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={editForm.class}
+                            onChange={(e) => setEditForm({ ...editForm, class: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          >
+                            <option value="">Select...</option>
+                            {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((cls) => (
+                              <option key={cls} value={cls}>
+                                Class {cls}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                         <td className="px-4 py-3">
                           <select
@@ -572,6 +618,11 @@ export default function ModifyTab() {
                       <>
                         <td className="px-4 py-3 text-sm text-gray-900">{student.name}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{student.student_id}</td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Class {student.class}
+                          </span>
+                        </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {student.section || '-'}

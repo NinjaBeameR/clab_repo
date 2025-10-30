@@ -141,9 +141,9 @@ export const studentService = {
     return students || [];
   },
 
-  async create(name: string, studentId: string, section?: string): Promise<Student> {
+  async create(name: string, studentId: string, classValue: string, section?: string): Promise<Student> {
     const { data, error } = await (((supabase.from('students') as unknown as any)
-      .insert({ name, student_id: studentId, section })
+      .insert({ name, student_id: studentId, class: classValue, section })
       .select()
       .single() as unknown) as { data: Student | null; error: any });
 
@@ -152,9 +152,9 @@ export const studentService = {
   return data;
   },
 
-  async update(id: string, name: string, studentId: string, section?: string): Promise<Student> {
+  async update(id: string, name: string, studentId: string, classValue: string, section?: string): Promise<Student> {
     const { data, error } = await (((supabase.from('students') as unknown as any)
-      .update({ name, student_id: studentId, section })
+      .update({ name, student_id: studentId, class: classValue, section })
       .eq('id', id)
       .select()
       .single() as unknown) as { data: Student | null; error: any });

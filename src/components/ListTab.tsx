@@ -8,6 +8,7 @@ type Section = 'A' | 'B' | 'C';
 export default function ListTab() {
   const [computers, setComputers] = useState<ComputerWithCount[]>([]);
   const [selectedComputer, setSelectedComputer] = useState<ComputerWithCount | null>(null);
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +20,10 @@ export default function ListTab() {
   }, []);
 
   useEffect(() => {
-    if (selectedComputer && selectedSection) {
-      loadStudentsByComputerAndSection();
+    if (selectedComputer && selectedClass && selectedSection) {
+      loadStudentsByComputerClassAndSection();
     }
-  }, [selectedComputer, selectedSection]);
+  }, [selectedComputer, selectedClass, selectedSection]);
 
   const loadComputers = async () => {
     try {
@@ -59,14 +60,14 @@ export default function ListTab() {
     }
   };
 
-  const loadStudentsByComputerAndSection = async () => {
-    if (!selectedComputer || !selectedSection) return;
+  const loadStudentsByComputerClassAndSection = async () => {
+    if (!selectedComputer || !selectedClass || !selectedSection) return;
 
     try {
       setLoading(true);
       setError(null);
       const allStudents = await studentService.getByComputerId(selectedComputer.id);
-      const filtered = allStudents.filter(s => s.section === selectedSection);
+      const filtered = allStudents.filter(s => s.class === selectedClass && s.section === selectedSection);
       setStudents(filtered);
     } catch (err: any) {
       setError(err.message || 'Failed to load students');
@@ -77,6 +78,13 @@ export default function ListTab() {
 
   const handleComputerSelect = (computer: ComputerWithCount) => {
     setSelectedComputer(computer);
+    setSelectedClass(null);
+    setSelectedSection(null);
+    setStudents([]);
+  };
+
+  const handleClassSelect = (classValue: string) => {
+    setSelectedClass(classValue);
     setSelectedSection(null);
     setStudents([]);
   };
@@ -89,8 +97,13 @@ export default function ListTab() {
     if (selectedSection) {
       setSelectedSection(null);
       setStudents([]);
+    } else if (selectedClass) {
+      setSelectedClass(null);
+      setSelectedSection(null);
+      setStudents([]);
     } else if (selectedComputer) {
       setSelectedComputer(null);
+      setSelectedClass(null);
       setSelectedSection(null);
       setStudents([]);
     }
@@ -118,10 +131,21 @@ export default function ListTab() {
           <>
             <span>→</span>
             <span 
+              className={selectedClass ? "cursor-pointer hover:text-blue-600" : "font-medium text-gray-900"}
+              onClick={() => selectedClass && handleBack()}
+            >
+              {selectedComputer.name}
+            </span>
+          </>
+        )}
+        {selectedClass && (
+          <>
+            <span>→</span>
+            <span 
               className={selectedSection ? "cursor-pointer hover:text-blue-600" : "font-medium text-gray-900"}
               onClick={() => selectedSection && handleBack()}
             >
-              {selectedComputer.name}
+              Class {selectedClass}
             </span>
           </>
         )}
@@ -198,12 +222,37 @@ export default function ListTab() {
         </div>
       )}
 
+      {/* Class Selection */}
+      {selectedComputer && !selectedClass && (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Select Class</h2>
+            <p className="text-gray-600 mt-1">Choose a class to view students in {selectedComputer.name}</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((classValue) => (
+              <button
+                key={classValue}
+                onClick={() => handleClassSelect(classValue)}
+                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all border-2 border-gray-200 p-6 hover:border-blue-400"
+              >
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-blue-600 mb-2">Class {classValue}</div>
+                  <p className="text-gray-600 text-sm">Click to continue</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Section Selection */}
-      {selectedComputer && !selectedSection && (
+      {selectedComputer && selectedClass && !selectedSection && (
         <div>
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Select Section</h2>
-            <p className="text-gray-600 mt-1">Choose a section to view students in {selectedComputer.name}</p>
+            <p className="text-gray-600 mt-1">Choose a section to view Class {selectedClass} students in {selectedComputer.name}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -224,11 +273,11 @@ export default function ListTab() {
       )}
 
       {/* Students List */}
-      {selectedComputer && selectedSection && (
+      {selectedComputer && selectedClass && selectedSection && (
         <div>
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900">
-              {selectedComputer.name} - Section {selectedSection}
+              {selectedComputer.name} - Class {selectedClass} - Section {selectedSection}
             </h2>
             <p className="text-gray-600 mt-1">
               {students.length} student{students.length !== 1 ? 's' : ''} allocated
@@ -244,7 +293,7 @@ export default function ListTab() {
               <Users size={48} className="mx-auto text-gray-400 mb-4" />
               <h3 className="text-xl font-semibold text-gray-700 mb-2">No students allocated</h3>
               <p className="text-gray-600">
-                No students are assigned to {selectedComputer.name} in Section {selectedSection}
+                No students are assigned to {selectedComputer.name} in Class {selectedClass} - Section {selectedSection}
               </p>
             </div>
           ) : (
@@ -262,6 +311,9 @@ export default function ListTab() {
                       Roll Number
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Class
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Section
                     </th>
                   </tr>
@@ -277,6 +329,11 @@ export default function ListTab() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-600">{student.student_id}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                          Class {student.class}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">

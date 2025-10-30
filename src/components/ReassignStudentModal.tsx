@@ -12,6 +12,7 @@ interface ReassignStudentModalProps {
 export default function ReassignStudentModal({ student, onClose, onSuccess }: ReassignStudentModalProps) {
   const [computers, setComputers] = useState<Computer[]>([]);
   const [selectedComputerId, setSelectedComputerId] = useState('');
+  const [classValue, setClassValue] = useState(student.class);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -40,9 +41,21 @@ export default function ReassignStudentModal({ student, onClose, onSuccess }: Re
       return;
     }
 
+    if (!classValue) {
+      setError('Please select a class');
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError(null);
+      
+      // Update student's class if it has changed
+      if (student.class !== classValue) {
+        const { studentService } = await import('../services/api');
+        await studentService.update(student.id, student.name, student.student_id, classValue, student.section || undefined);
+      }
+      
       await allocationService.create(student.id, selectedComputerId);
       onSuccess();
     } catch (err: any) {
@@ -77,7 +90,7 @@ export default function ReassignStudentModal({ student, onClose, onSuccess }: Re
           <div className="mb-4 p-4 bg-gray-50 rounded-lg">
             <div className="text-sm text-gray-600 mb-1">Student</div>
             <div className="font-semibold text-gray-900">{student.name}</div>
-            <div className="text-sm text-gray-600">{student.student_id}</div>
+            <div className="text-sm text-gray-600">{student.student_id} - Class {student.class}</div>
             {student.computer_name && (
               <div className="text-sm text-blue-600 mt-2">
                 Currently assigned to: {student.computer_name}
@@ -93,6 +106,26 @@ export default function ReassignStudentModal({ student, onClose, onSuccess }: Re
             </div>
           ) : (
             <>
+              <div className="mb-4">
+                <label htmlFor="class" className="block text-sm font-medium text-gray-700 mb-2">
+                  Class *
+                </label>
+                <select
+                  id="class"
+                  value={classValue}
+                  onChange={(e) => setClassValue(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={submitting}
+                >
+                  <option value="">Select a class...</option>
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((cls) => (
+                    <option key={cls} value={cls}>
+                      Class {cls}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="mb-6">
                 <label htmlFor="computer" className="block text-sm font-medium text-gray-700 mb-2">
                   Select Computer *
