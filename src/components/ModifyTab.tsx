@@ -19,14 +19,15 @@ export default function ModifyTab() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Computer management
+  const [showComputerSection, setShowComputerSection] = useState(false);
   const [showAddComputer, setShowAddComputer] = useState(false);
   const [newComputerName, setNewComputerName] = useState('');
-  const [newComputerLocation, setNewComputerLocation] = useState('');
 
   // Student allocation form (2 students)
   const [selectedComputerId, setSelectedComputerId] = useState('');
-  const [student1, setStudent1] = useState<StudentForm>({ name: '', studentId: '', section: '' });
-  const [student2, setStudent2] = useState<StudentForm>({ name: '', studentId: '', section: '' });
+  const [selectedSection, setSelectedSection] = useState<Section | ''>('');
+  const [student1, setStudent1] = useState({ name: '', studentId: '' });
+  const [student2, setStudent2] = useState({ name: '', studentId: '' });
 
   // Edit student
   const [editingStudent, setEditingStudent] = useState<StudentWithComputer | null>(null);
@@ -43,7 +44,29 @@ export default function ModifyTab() {
         computerService.getAll(),
         studentService.getAll()
       ]);
-      setComputers(computersData);
+      // Sort computers naturally
+      const sorted = computersData.sort((a, b) => {
+        const regex = /(\d+)/g;
+        const aParts = a.name.split(regex);
+        const bParts = b.name.split(regex);
+        
+        for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+          const aPart = aParts[i];
+          const bPart = bParts[i];
+          
+          if (aPart !== bPart) {
+            const aNum = parseInt(aPart);
+            const bNum = parseInt(bPart);
+            
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+              return aNum - bNum;
+            }
+            return aPart.localeCompare(bPart);
+          }
+        }
+        return aParts.length - bParts.length;
+      });
+      setComputers(sorted);
       setStudents(studentsData);
     } catch (err: any) {
       setError(err.message || 'Failed to load data');
@@ -69,10 +92,9 @@ export default function ModifyTab() {
 
     try {
       setLoading(true);
-      await computerService.create(newComputerName.trim(), newComputerLocation.trim() || undefined);
+      await computerService.create(newComputerName.trim());
       setSuccess('Computer added successfully!');
       setNewComputerName('');
-      setNewComputerLocation('');
       setShowAddComputer(false);
       await loadData();
     } catch (err: any) {
@@ -111,8 +133,13 @@ export default function ModifyTab() {
       return;
     }
 
-    const hasStudent1 = student1.name && student1.studentId && student1.section;
-    const hasStudent2 = student2.name && student2.studentId && student2.section;
+    if (!selectedSection) {
+      setError('Please select a section');
+      return;
+    }
+
+    const hasStudent1 = student1.name && student1.studentId;
+    const hasStudent2 = student2.name && student2.studentId;
 
     if (!hasStudent1 && !hasStudent2) {
       setError('Please enter at least one student');
@@ -127,7 +154,7 @@ export default function ModifyTab() {
         const newStudent1 = await studentService.create(
           student1.name.trim(),
           student1.studentId.trim(),
-          student1.section
+          selectedSection
         );
         await allocationService.create(newStudent1.id, selectedComputerId);
       }
@@ -137,15 +164,16 @@ export default function ModifyTab() {
         const newStudent2 = await studentService.create(
           student2.name.trim(),
           student2.studentId.trim(),
-          student2.section
+          selectedSection
         );
         await allocationService.create(newStudent2.id, selectedComputerId);
       }
 
       setSuccess('Students allocated successfully!');
-      setStudent1({ name: '', studentId: '', section: '' });
-      setStudent2({ name: '', studentId: '', section: '' });
+      setStudent1({ name: '', studentId: '' });
+      setStudent2({ name: '', studentId: '' });
       setSelectedComputerId('');
+      setSelectedSection('');
       await loadData();
     } catch (err: any) {
       setError(err.message || 'Failed to allocate students');
@@ -242,54 +270,50 @@ export default function ModifyTab() {
         </div>
       )}
 
-      {/* Computer Management Section */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <Monitor size={24} className="text-blue-600" />
-              Manage Computers
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">Add or remove computers</p>
+      {/* Computer Management Section - Collapsible */}
+      <div className="bg-white rounded-lg shadow-md border border-gray-200">
+        <button
+          onClick={() => setShowComputerSection(!showComputerSection)}
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Monitor size={24} className="text-blue-600" />
+            <div className="text-left">
+              <h2 className="text-xl font-bold text-gray-900">Manage Computers</h2>
+              <p className="text-sm text-gray-600">Add or remove computers</p>
+            </div>
           </div>
-          <button
-            onClick={() => setShowAddComputer(!showAddComputer)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={18} />
-            Add Computer
-          </button>
-        </div>
+          <div className="text-gray-600">
+            {showComputerSection ? '▲' : '▼'}
+          </div>
+        </button>
 
-        {showAddComputer && (
+        {showComputerSection && (
+          <div className="px-6 pb-6 border-t border-gray-200">
+            <div className="flex justify-end mt-4 mb-4">
+              <button
+                onClick={() => setShowAddComputer(!showAddComputer)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus size={18} />
+                Add Computer
+              </button>
+            </div>
+
+            {showAddComputer && (
           <form onSubmit={handleAddComputer} className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Computer Name *
-                </label>
-                <input
-                  type="text"
-                  value={newComputerName}
-                  onChange={(e) => setNewComputerName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Computer 1"
-                  disabled={loading}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={newComputerLocation}
-                  onChange={(e) => setNewComputerLocation(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Lab A"
-                  disabled={loading}
-                />
-              </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Computer Name *
+              </label>
+              <input
+                type="text"
+                value={newComputerName}
+                onChange={(e) => setNewComputerName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Computer 21"
+                disabled={loading}
+              />
             </div>
             <div className="flex gap-2">
               <button
@@ -304,7 +328,6 @@ export default function ModifyTab() {
                 onClick={() => {
                   setShowAddComputer(false);
                   setNewComputerName('');
-                  setNewComputerLocation('');
                 }}
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
               >
@@ -312,30 +335,32 @@ export default function ModifyTab() {
               </button>
             </div>
           </form>
-        )}
+            )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {computers.map((computer) => (
-            <div key={computer.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{computer.name}</h3>
-                  {computer.location && (
-                    <p className="text-sm text-gray-600">{computer.location}</p>
-                  )}
-                  <p className="text-xs text-gray-500 mt-1">{computer.student_count} students</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {computers.map((computer) => (
+                <div key={computer.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">{computer.name}</h3>
+                      {computer.location && (
+                        <p className="text-sm text-gray-600">{computer.location}</p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">{computer.student_count} students</p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteComputer(computer.id, computer.name)}
+                      className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors"
+                      title="Delete computer"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleDeleteComputer(computer.id, computer.name)}
-                  className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors"
-                  title="Delete computer"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Student Allocation Section (2 students) */}
@@ -349,30 +374,49 @@ export default function ModifyTab() {
         </div>
 
         <form onSubmit={handleAllocateStudents} className="space-y-6">
-          {/* Computer Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Computer *
-            </label>
-            <select
-              value={selectedComputerId}
-              onChange={(e) => setSelectedComputerId(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={loading}
-            >
-              <option value="">Choose a computer...</option>
-              {computers.map((computer) => (
-                <option key={computer.id} value={computer.id}>
-                  {computer.name} {computer.location ? `- ${computer.location}` : ''}
-                </option>
-              ))}
-            </select>
+          {/* Computer and Section Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Computer *
+              </label>
+              <select
+                value={selectedComputerId}
+                onChange={(e) => setSelectedComputerId(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={loading}
+              >
+                <option value="">Choose a computer...</option>
+                {computers.map((computer) => (
+                  <option key={computer.id} value={computer.id}>
+                    {computer.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Section (for both students) *
+              </label>
+              <select
+                value={selectedSection}
+                onChange={(e) => setSelectedSection(e.target.value as Section | '')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={loading}
+              >
+                <option value="">Choose section...</option>
+                <option value="A">Section A</option>
+                <option value="B">Section B</option>
+                <option value="C">Section C</option>
+              </select>
+            </div>
           </div>
 
           {/* Student 1 */}
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h3 className="font-semibold text-gray-900 mb-3">Student 1</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Name
@@ -399,29 +443,13 @@ export default function ModifyTab() {
                   disabled={loading}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Section
-                </label>
-                <select
-                  value={student1.section}
-                  onChange={(e) => setStudent1({ ...student1, section: e.target.value as Section | '' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={loading}
-                >
-                  <option value="">Select...</option>
-                  <option value="A">Section A</option>
-                  <option value="B">Section B</option>
-                  <option value="C">Section C</option>
-                </select>
-              </div>
             </div>
           </div>
 
           {/* Student 2 */}
           <div className="p-4 bg-green-50 rounded-lg border border-green-200">
             <h3 className="font-semibold text-gray-900 mb-3">Student 2</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Name
@@ -447,22 +475,6 @@ export default function ModifyTab() {
                   placeholder="Roll number"
                   disabled={loading}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Section
-                </label>
-                <select
-                  value={student2.section}
-                  onChange={(e) => setStudent2({ ...student2, section: e.target.value as Section | '' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={loading}
-                >
-                  <option value="">Select...</option>
-                  <option value="A">Section A</option>
-                  <option value="B">Section B</option>
-                  <option value="C">Section C</option>
-                </select>
               </div>
             </div>
           </div>

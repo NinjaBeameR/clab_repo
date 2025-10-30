@@ -12,6 +12,7 @@ export default function ListTab() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadComputers();
@@ -28,7 +29,29 @@ export default function ListTab() {
       setLoading(true);
       setError(null);
       const data = await computerService.getAll();
-      setComputers(data);
+      // Sort computers naturally (Computer 1, Computer 2, ..., Computer 10, Computer 20)
+      const sorted = data.sort((a, b) => {
+        const regex = /(\d+)/g;
+        const aParts = a.name.split(regex);
+        const bParts = b.name.split(regex);
+        
+        for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+          const aPart = aParts[i];
+          const bPart = bParts[i];
+          
+          if (aPart !== bPart) {
+            const aNum = parseInt(aPart);
+            const bNum = parseInt(bPart);
+            
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+              return aNum - bNum;
+            }
+            return aPart.localeCompare(bPart);
+          }
+        }
+        return aParts.length - bParts.length;
+      });
+      setComputers(sorted);
     } catch (err: any) {
       setError(err.message || 'Failed to load computers');
     } finally {
@@ -124,6 +147,17 @@ export default function ListTab() {
             <p className="text-gray-600 mt-1">Choose a computer to view its allocated students</p>
           </div>
 
+          {/* Search Bar */}
+          <div className="mb-6">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search computers by name..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
           {computers.length === 0 ? (
             <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
               <Monitor size={48} className="mx-auto text-gray-400 mb-4" />
@@ -132,7 +166,11 @@ export default function ListTab() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {computers.map((computer) => (
+              {computers
+                .filter(computer => 
+                  computer.name.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((computer) => (
                 <button
                   key={computer.id}
                   onClick={() => handleComputerSelect(computer)}
