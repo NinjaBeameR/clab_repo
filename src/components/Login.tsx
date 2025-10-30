@@ -1,44 +1,36 @@
 import { useState } from 'react';
 import { Monitor, Lock } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 
 interface LoginProps {
-  onLoginSuccess: () => void;
+  onLogin: (username: string, password: string) => boolean;
 }
 
-export default function Login({ onLoginSuccess }: LoginProps) {
-  const [email, setEmail] = useState('');
+export default function Login({ onLogin }: LoginProps) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      setError('Please enter both email and password');
+    if (!username || !password) {
+      setError('Please enter both username and password');
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) throw signInError;
+    // Simulate a small delay for better UX
+    setTimeout(() => {
+      const success = onLogin(username, password);
       
-      if (data.user) {
-        onLoginSuccess();
+      if (!success) {
+        setError('Invalid username or password');
+        setLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to login. Please check your credentials.');
-    } finally {
-      setLoading(false);
-    }
+    }, 500);
   };
 
   return (
@@ -73,18 +65,18 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                Username
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="admin@example.com"
+                placeholder="admin"
                 disabled={loading}
-                autoComplete="email"
+                autoComplete="username"
               />
             </div>
 
@@ -123,8 +115,13 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p>🔒 Admin access only</p>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">🔒 Admin access only</p>
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-xs text-blue-800 font-medium">Default Credentials:</p>
+              <p className="text-xs text-blue-600">Username: <code className="bg-white px-2 py-0.5 rounded">admin</code></p>
+              <p className="text-xs text-blue-600">Password: <code className="bg-white px-2 py-0.5 rounded">admin123</code></p>
+            </div>
           </div>
         </div>
       </div>

@@ -1,12 +1,42 @@
-import { useState } from 'react';
-import { Monitor, List, Edit } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Monitor, List, Edit, LogOut } from 'lucide-react';
+import Login from './components/Login';
 import ListTab from './components/ListTab';
 import ModifyTab from './components/ModifyTab';
 
 type Tab = 'list' | 'modify';
 
+// Hardcoded credentials
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'admin123';
+
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('list');
+
+  // Check if user is already logged in (from localStorage)
+  useEffect(() => {
+    const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    setIsLoggedIn(loggedIn);
+  }, []);
+
+  const handleLogin = (username: string, password: string): boolean => {
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      setIsLoggedIn(true);
+      localStorage.setItem('isLoggedIn', 'true');
+      return true;
+    }
+    return false;
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.removeItem('isLoggedIn');
+  };
+
+  if (!isLoggedIn) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -48,6 +78,16 @@ function App() {
               >
                 <Edit size={18} />
                 <span className="hidden sm:inline">Modify</span>
+              </button>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors ml-2"
+                title="Logout"
+              >
+                <LogOut size={18} />
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           </div>
